@@ -17,7 +17,8 @@ public class GreetingsTopology {
 
         var greetingStream = streamsBuilder.stream(GREETINGS, Consumed.with(Serdes.String(), Serdes.String()));
         greetingStream.print(Printed.<String, String>toSysOut().withLabel("greetingStream"));
-        var modifiedStream = greetingStream.mapValues((readonlyKey, value) -> value.toUpperCase());
+        var modifiedStream = greetingStream.filter((key, value) -> value.length() > 5).
+                mapValues((readonlyKey, value) -> value.toUpperCase());
         modifiedStream.print(Printed.<String, String>toSysOut().withLabel("modifiedStream"));
         modifiedStream.to(GREETINGS_UPPERCASE, Produced.with(Serdes.String(), Serdes.String()));
 
