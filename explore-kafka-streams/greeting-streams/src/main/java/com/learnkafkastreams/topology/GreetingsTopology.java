@@ -1,5 +1,7 @@
 package com.learnkafkastreams.topology;
 
+import com.learnkafkastreams.domain.Greeting;
+import com.learnkafkastreams.serdes.SerdesFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -20,17 +22,12 @@ public class GreetingsTopology {
     public static Topology buildTopology() {
         StreamsBuilder streamsBuilder = new StreamsBuilder();
 
-        KStream<String,String> greetingStream = streamsBuilder.stream(GREETINGS);
-        KStream<String,String> greetingsSpanishStream = streamsBuilder.stream(GREETINGS_SPANISH
-//                , Consumed.with(Serdes.String(), Serdes.String())
-        );
-
-        var mergedStream = greetingStream.merge(greetingsSpanishStream);
-
-        mergedStream.print(Printed.<String, String>toSysOut().withLabel("mergedStream"));
+//        var mergedStream = getStringGreetingKStream(streamsBuilder);
+        var mergedStream = getCustomGreetingKStream(streamsBuilder);
+        mergedStream.print(Printed.<String, Greeting>toSysOut().withLabel("mergedStream"));
 
         var modifiedStream = mergedStream
-                .mapValues(value -> value.toUpperCase())
+                .mapValues(value -> new Greeting(value.message().toUpperCase(), value.timeStamp()))
 //                .filter((key, value) -> value.length() > 5)
 //                .peek((key, value) -> log.info("after filter key : {} value : {}", key, value))
 //                .mapValues((readonlyKey, value) -> value.toUpperCase())
@@ -43,11 +40,32 @@ public class GreetingsTopology {
 //                            .collect(Collectors.toList());
 //                });
         ;
-        modifiedStream.print(Printed.<String, String>toSysOut().withLabel("modifiedStream"));
+//        modifiedStream.print(Printed.<String, String>toSysOut().withLabel("modifiedStream"));
+        modifiedStream.print(Printed.<String, Greeting>toSysOut().withLabel("modifiedStream"));
         modifiedStream.to(GREETINGS_UPPERCASE
-//                , Produced.with(Serdes.String(), Serdes.String())
+                , Produced.with(Serdes.String(), SerdesFactory.greetingSerdes())
         );
 
         return streamsBuilder.build();
+    }
+
+    private static KStream<String, String> getStringGreetingKStream(StreamsBuilder streamsBuilder) {
+        KStream<String,String> greetingStream = streamsBuilder.stream(GREETINGS);
+        KStream<String,String> greetingsSpanishStream = streamsBuilder.stream(GREETINGS_SPANISH
+        );
+
+        var mergedStream = greetingStream.merge(greetingsSpanishStream);
+        return mergedStream;
+    }
+
+    private static KStream<String,Greeting> getCustomGreetingKStream(StreamsBuilder streamsBuilder) {
+        var greetingStream = streamsBuilder.stream(GREETINGS,
+                Consumed.with(Serdes.String(), SerdesFactory.greetingSerdes()));
+        var greetingsSpanishStream = streamsBuilder.stream(GREETINGS_SPANISH,
+                Consumed.with(Serdes.String(), SerdesFactory.greetingSerdes())
+        );
+
+        var mergedStream = greetingStream.merge(greetingsSpanishStream);
+        return mergedStream;
     }
 }
