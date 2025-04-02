@@ -1,5 +1,6 @@
 package com.learnkafkastreams.launcher;
 
+import com.learnkafkastreams.exception.SteamsProcessorCustomErrorHandler;
 import com.learnkafkastreams.exception.StreamsDeserializationExceptionHandler;
 import com.learnkafkastreams.topology.GreetingsTopology;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class GreetingsStreamApp {
         var greetingsTopology = GreetingsTopology.buildTopology();
 
         var kafkaStreams = new KafkaStreams(greetingsTopology, properties);
+        kafkaStreams.setUncaughtExceptionHandler(new SteamsProcessorCustomErrorHandler());
 
         Runtime.getRuntime().addShutdownHook(new Thread(kafkaStreams::close));
         try {
