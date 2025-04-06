@@ -21,7 +21,8 @@ public class ExploreKTableTopology {
                         Consumed.with(Serdes.String(), Serdes.String()),
                         Materialized.as("words-store"));
         wordsTable
-                .filter((key, value) -> value.length() > 2)
+//                .filter((key, value) -> value.length() > 2)
+                .mapValues((readOnlyKey, value) -> value.toUpperCase())
                 .toStream()
                 .peek((key, value) -> log.info("Key: {}, Value: {}", key, value))
                 .print(Printed.<String, String>toSysOut().withLabel("words-ktable"));
